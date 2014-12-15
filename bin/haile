@@ -1,29 +1,30 @@
 #!/usr/bin/env ruby
 
-require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'marathon'))
+require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'haile'))
 require 'trollop'
 
-SUB_COMMANDS = %w[endpoints kill kill_tasks start scale list list_tasks search]
+SUB_COMMANDS = %w[endpoints kill kill_tasks start scale list list_tasks search docker_deploy]
 
 global_opts = Trollop.options do
-  version Marathon::VERSION
+  version Haile::VERSION
   banner <<-EOS
-Usage: marathon [global options] [command] [options]
+Usage: haile [global options] [command] [options]
 
 Available commands:
 
-  kill        Kill an app and remove it from Marathon.
-  kill_tasks  Kill a task or tasks belonging to a specified app.
-  list        Show a list of running apps and their options.
-  list_tasks  Show a list of an app's running tasks.
-  scale       Scale the number of app instances.
-  search      Search the current list of apps.
-  start       Start a new app.
+  kill           Kill an app and remove it from Marathon.
+  kill_tasks     Kill a task or tasks belonging to a specified app.
+  list           Show a list of running apps and their options.
+  list_tasks     Show a list of an app's running tasks.
+  scale          Scale the number of app instances.
+  search         Search the current list of apps.
+  start          Start a new app.
+  docker_deploy  Update the docker image tag of an app.
 
 Global options:
 EOS
 
-  opt :marathon_host, 'Marathon host (default http://localhost:8080, or MARATHON_HOST)', :short => '-H', :type => String
+  opt :marathon_url, 'Marathon URL (default http://localhost:8080, or MARATHON_URL)', :short => '-R', :type => String
   opt :marathon_user, 'User name to authenticate against Marathon (optional).', :short => '-U', :type => String
   opt :marathon_pass, 'Password to authenticate against Marathon (optional).', :short => '-P', :type => String
   stop_on SUB_COMMANDS
@@ -73,12 +74,17 @@ cmd_opts = case cmd
       opt :id, 'A unique identifier for the app.', :short => '-i', :type => String, :default => nil
       opt :command, 'The command for the app.', :short => '-C', :type => String, :default => nil
     end
+  when 'docker_deploy'
+    Trollop.options do
+      opt :id, 'A unique identifier for the app.', :required => true, :short => '-i', :type => String
+      opt :docker_image, 'The docker image:tag to update to.', :required => true, :short => '-d', :type => String
+    end
   else
     {}
   end
 
-marathon = Marathon::Client.new(
-  global_opts[:marathon_host],
+haile = Haile::Client.new(
+  global_opts[:marathon_url],
   global_opts[:marathon_user],
   global_opts[:marathon_pass]
 )
@@ -117,7 +123,7 @@ end
 # Run
 case cmd
 when 'endpoints'
-  puts marathon.endpoints(cmd_opts[:id]).parsed_response
+  puts haile.endpoints(cmd_opts[:id]).parsed_response
 when 'start'
   app_opts = {
     :instances => cmd_opts[:num_instances] || 1,
@@ -130,27 +136,31 @@ when 'start'
   }
   app_opts[:executor] = cmd_opts[:executor] unless cmd_opts[:executor] == nil
   puts "Starting app '#{cmd_opts[:id]}'"
-  puts marathon.start(cmd_opts[:id], app_opts)
+  puts haile.start(cmd_opts[:id], app_opts)
 when 'scale'
   puts "Scaling app '#{cmd_opts[:id]}' to #{cmd_opts[:num_instances]} instances"
-  res = marathon.scale(cmd_opts[:id], cmd_opts[:num_instances])
+  res = haile.scale(cmd_opts[:id], cmd_opts[:num_instances])
+  puts res
+when 'docker_deploy'
+  puts "Deploying app '#{cmd_opts[:id]}' to #{cmd_opts[:docker_image]}"
+  res = haile.docker_deploy(cmd_opts[:id], cmd_opts[:docker_image])
   puts res
 when 'kill'
   puts "Killing app '#{cmd_opts[:id]}'"
-  puts marathon.kill(cmd_opts[:id])
+  puts haile.kill(cmd_opts[:id])
 when 'kill_tasks'
   KILL_TASKS_KEYS = [:host, :scale, :task_id]
 
   opts = cmd_opts.clone
   opts.select! {|k, v| KILL_TASKS_KEYS.include?(k)}
 
-  puts marathon.kill_tasks(cmd_opts[:id], opts).parsed_response
+  puts haile.kill_tasks(cmd_opts[:id], opts).parsed_response
 when 'list'
-  handle_listing(marathon.list)
+  handle_listing(haile.list)
 when 'list_tasks'
-  puts marathon.list_tasks(cmd_opts[:id]).parsed_response
+  puts haile.list_tasks(cmd_opts[:id]).parsed_response
 when 'search'
-  handle_listing(marathon.search(cmd_opts[:id], cmd_opts[:command]))
+  handle_listing(haile.search(cmd_opts[:id], cmd_opts[:command]))
 else
   Trollop.die "unknown subcommand #{cmd.inspect}"
 end

@@ -13,9 +13,9 @@ module Haile
     maintain_method_across_redirects
     default_timeout 5
 
-    EDITABLE_APP_ATTRIBUTES = [
-      :cmd, :constraints, :container, :cpus, :env, :executor, :id, :instances,
-      :mem, :ports, :uris]
+    EDITABLE_APP_ATTRIBUTES = %w(
+      cmd constraints container cpus env executor id instances mem ports uris
+    )
 
     def initialize(url = nil, user = nil, pass = nil, proxy = nil)
       @host = url || ENV['MARATHON_URL'] || 'http://localhost:8080'
@@ -65,6 +65,25 @@ module Haile
       wrap_request(:post, '/v2/apps/', :body => body)
     end
 
+    def docker_deploy(id, image)
+      # Fetch current state and update only the 'container['docker']['image']'
+      # attribute. Since the API only supports PUT, the full representation
+      # of the app must be supplied to update even just a single attribute.
+
+      app = wrap_request(:get, "/v2/apps/#{id}").parsed_response['app']
+      app.select! {|k, v| EDITABLE_APP_ATTRIBUTES.include?(k)}
+
+      begin
+        app['container']['docker']['image'] = image
+      rescue
+        msg = "App doesn't have a docker image configured. Make sure " \
+              "the ID is correct and that this app is already configured " \
+              "with a docker image."
+        return Haile::Response.error(msg)
+      end
+      wrap_request(:put, "/v2/apps/#{id}", :body => app)
+    end
+
     def scale(id, num_instances)
       # Fetch current state and update only the 'instances' attribute. Since the
       # API only supports PUT, the full representation of the app must be
@@ -72,7 +91,7 @@ module Haile
       app = wrap_request(:get, "/v2/apps/#{id}").parsed_response['app']
       app.select! {|k, v| EDITABLE_APP_ATTRIBUTES.include?(k)}
 
-      app[:instances] = num_instances
+      app['instances'] = num_instances
       wrap_request(:put, "/v2/apps/#{id}", :body => app)
     end
 
@@ -96,10 +115,16 @@ module Haile
 
     def wrap_request(method, url, options = {})
       options = @default_options.merge(options)
-      http = self.class.send(method, @host + url, options)
-      Marathon::Response.new(http)
+      if method == :get
+        puts "GET"
+        http = self.class.send(method, @host + url, options)
+        return Haile::Response.new(http)
+      else
+        puts "#{method} #{@host + url} #{options}"
+        return
+      end
     rescue => e
-      Marathon::Response.error(e.message)
+      Haile::Response.error(e.message)
     end
 
     def query_params(hash)
