@@ -1,16 +1,15 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'marathon/version'
+require 'haile/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "marathon_client"
-  spec.version       = Marathon::VERSION
-  spec.authors       = ["Tobi Knaup"]
-  spec.email         = ["tobi@mesosphere.io"]
-  spec.description   = %q{Command line client for the Marathon scheduler. Marathon is a Mesos scheduler for long running services.}
-  spec.summary       = %q{Command line client for the Marathon scheduler.}
-  spec.homepage      = "https://github.com/mesosphere/marathon_client"
+  spec.name          = "haile"
+  spec.version       = Haile::VERSION
+  spec.authors       = ["Tobi Knaup", "Chris Kite"]
+  spec.description   = %q{Ruby client for Marathon REST API}
+  spec.summary       = %q{Ruby client for Marathon REST API}
+  spec.homepage      = "https://github.com/chriskite/haile"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)

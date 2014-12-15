@@ -4,9 +4,9 @@ $LOAD_PATH.unshift __LIB_DIR__ unless $LOAD_PATH.include?(__LIB_DIR__)
 require "rubygems"
 require "httparty"
 
-require "marathon/version"
-require "marathon/client"
-require "marathon/response"
+require "haile/version"
+require "haile/client"
+require "haile/response"
 
-module Marathon
+module Haile
 end

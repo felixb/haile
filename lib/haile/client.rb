@@ -1,6 +1,6 @@
 require 'uri'
 
-module Marathon
+module Haile
   class Client
     include HTTParty
 
@@ -17,8 +17,8 @@ module Marathon
       :cmd, :constraints, :container, :cpus, :env, :executor, :id, :instances,
       :mem, :ports, :uris]
 
-    def initialize(host = nil, user = nil, pass = nil, proxy = nil)
-      @host = host || ENV['MARATHON_HOST'] || 'http://localhost:8080'
+    def initialize(url = nil, user = nil, pass = nil, proxy = nil)
+      @host = url || ENV['MARATHON_URL'] || 'http://localhost:8080'
       @default_options = {}
 
       if user && pass

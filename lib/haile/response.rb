@@ -1,4 +1,4 @@
-module Marathon
+module Haile
   class Response
 
     # TODO make this attr_reader and set the error some other way
