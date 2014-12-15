@@ -115,14 +115,8 @@ module Haile
 
     def wrap_request(method, url, options = {})
       options = @default_options.merge(options)
-      if method == :get
-        puts "GET"
-        http = self.class.send(method, @host + url, options)
-        return Haile::Response.new(http)
-      else
-        puts "#{method} #{@host + url} #{options}"
-        return
-      end
+      http = self.class.send(method, @host + url, options)
+      Haile::Response.new(http)
     rescue => e
       Haile::Response.error(e.message)
     end
