@@ -34,8 +34,13 @@ module Haile
       end
     end
 
-    def list
-      wrap_request(:get, '/v2/apps')
+    def list(id = nil)
+      if id.nil?
+        url = "/v2/apps"
+      else
+        url = "/v2/apps/#{id}"
+      end
+      wrap_request(:get, url)
     end
 
     def list_tasks(id)
